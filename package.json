@@ -4,6 +4,10 @@
   "description": "A tiny deterministic weather system driven by Claude Code session hook events.",
   "main": "index.js",
   "license": "MIT",
+  "bin": {
+    "sessionweather-hook": "bin/hook.js",
+    "sessionweather-statusline": "bin/statusline.js"
+  },
   "scripts": {
     "test": "node --test"
   },

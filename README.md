@@ -20,7 +20,32 @@ npm install
 ```
 
 No external packages are required — everything is built on the Node.js
-standard library (`node:test`, `node:assert`).
+standard library (`node:test`, `node:assert`, `node:fs`).
+
+To wire this up as a live plugin, point your hook configuration and status
+line at the two CLI entry points in `bin/`:
+
+- `hooks/hooks.json` already registers `bin/hook.js` against every session
+  hook event (`SessionStart`, `UserPromptSubmit`, `PreToolUse`,
+  `PostToolUse`, `Notification`, `Stop`, `SubagentStop`, `SessionEnd`). Each
+  invocation reads the event JSON from stdin, advances that session's
+  weather, and persists it — it never prints anything the session would act
+  on.
+- Point your status line at `bin/statusline.js`, for example in your
+  settings:
+
+  ```json
+  { "statusLine": { "type": "command", "command": "node /path/to/sessionweather/bin/statusline.js" } }
+  ```
+
+  It reads the session context JSON Claude Code sends on stdin, looks up
+  that session's persisted weather, and prints the current ASCII frame —
+  it never classifies events or advances state itself, so a redraw can
+  never desync from what the hooks last recorded.
+
+State is persisted per `session_id` as small JSON files under
+`os.tmpdir()/sessionweather`, so hook events and status-line redraws (two
+separate short-lived processes) agree on the current forecast.
 
 ## Usage
 
@@ -100,6 +125,28 @@ console.log(render({ sky: SKY.STORM, intensity: 2, ticksInState: 0 }));
 fixed `FRAME_WIDTH` x `FRAME_HEIGHT` frame, so the status-line pane never
 reflows as the forecast changes. Storm frames scale their lightning line
 with `intensity`.
+
+The **plugin wiring** (`src/wiring.js`) is what connects a live, running
+session to the pieces above. A hook event and a status-line redraw each run
+in their own short-lived process, so the current sky state is persisted to
+disk between them, keyed by `session_id`:
+
+```js
+const { processHookEvent, readCurrentFrame } = require('./index.js');
+
+// Called from bin/hook.js for every session hook event. Classifies the
+// event, applies an idle-gap forcing first if enough wall-clock time
+// passed since the last one, advances that session's weather, and
+// persists it.
+processHookEvent(hookEventFromStdin);
+
+// Called from bin/statusline.js on every redraw. Renders whatever was
+// last persisted for that session without classifying anything itself.
+readCurrentFrame(sessionId);
+```
+
+See `## Install` above for wiring these into actual hook and status-line
+configuration.
 
 ## Status
 

@@ -1,0 +1,6 @@
+{
+  "name": "sessionweather",
+  "version": "0.1.0",
+  "description": "A tiny deterministic weather system for a status-line pane, driven by session hook events.",
+  "hooks": "./hooks/hooks.json"
+}
