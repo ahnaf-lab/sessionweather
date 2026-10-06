@@ -5,10 +5,12 @@ session's own hook events: failed tool calls brew storms, clean test runs
 clear the sky, and long idle gaps roll in fog. The same transcript always
 produces the same forecast.
 
-This milestone defines the **event taxonomy**: the mapping from raw session
-hook events to a small set of weather-forcing inputs (`storm`, `clear`,
-`fog`, `calm`). Later milestones turn a sequence of these forcings into an
-actual forecast state machine and a rendered status-line pane.
+The **event taxonomy** maps raw session hook events to a small set of
+weather-forcing inputs (`storm`, `clear`, `fog`, `calm`). The **weather state
+machine** is a pure reducer that advances a sky state (`clear`, `cloudy`,
+`storm`, `fog`) one forcing at a time, so the same sequence of forcings
+always produces the same forecast. A later milestone renders this state into
+an actual status-line pane.
 
 ## Install
 
@@ -48,6 +50,37 @@ The taxonomy recognizes:
 - **fog** — the gap since the previous event exceeded the idle threshold
   (5 minutes by default, configurable per call).
 - **calm** — everything else; the event carries no weather signal.
+
+Feed a sequence of forcings into the state machine to advance the sky one
+frame at a time:
+
+```js
+const { reduce, run, INITIAL_STATE } = require('./index.js');
+
+// reduce() is a pure function: same (state, forcing) in, same state out.
+const afterStorm = reduce(INITIAL_STATE, { forcing: 'storm', magnitude: 1 });
+// => { sky: 'storm', intensity: 1, ticksInState: 0 }
+
+// run() walks an entire event queue and returns every intermediate frame.
+const frames = run([
+  { forcing: 'storm', magnitude: 1 },
+  { forcing: 'calm', magnitude: 0 },
+  { forcing: 'calm', magnitude: 0 },
+  { forcing: 'calm', magnitude: 0 },
+]);
+// frames[frames.length - 1].sky === 'cloudy'
+```
+
+The state machine's rules:
+
+- **storm** forcings raise intensity (capped) and put the sky in `storm`.
+- A **clear** forcing (a passing test run) clears a storm by one intensity
+  step immediately, or resolves `cloudy`/`fog` straight to `clear`.
+- A **fog** forcing rolls in fog, unless a storm is already active — storms
+  are a stronger signal than an idle gap and are not interrupted by one.
+- A **calm** forcing (anything weather-neutral) is the only thing that decays
+  a state on its own: after enough consecutive calm ticks, `storm` steps
+  down to `cloudy`, and `cloudy`/`fog` settle back to `clear`.
 
 ## Status
 

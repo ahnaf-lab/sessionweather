@@ -1,3 +1,6 @@
 'use strict';
 
-module.exports = require('./src/taxonomy');
+module.exports = {
+  ...require('./src/taxonomy'),
+  ...require('./src/weather'),
+};
