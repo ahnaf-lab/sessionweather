@@ -5,4 +5,5 @@ module.exports = {
   ...require('./src/weather'),
   ...require('./src/render'),
   ...require('./src/wiring'),
+  ...require('./src/replay'),
 };

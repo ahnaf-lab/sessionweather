@@ -5,6 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "bin": {
+    "sessionweather": "bin/sessionweather.js",
     "sessionweather-hook": "bin/hook.js",
     "sessionweather-statusline": "bin/statusline.js"
   },

@@ -148,6 +148,63 @@ readCurrentFrame(sessionId);
 See `## Install` above for wiring these into actual hook and status-line
 configuration.
 
+### Replay mode
+
+`sessionweather replay <transcript.jsonl>` re-derives a past session's
+weather from a recorded transcript instead of live hook events, so the same
+transcript always displays the same forecast:
+
+```
+sessionweather replay path/to/transcript.jsonl
+```
+
+A transcript is a JSONL file: one hook event per line, each carrying a
+`timestamp` (an ISO 8601 string or epoch-millisecond number) in addition to
+the usual hook event fields (`hook_event_name`, `tool_name`, `tool_input`,
+`tool_response`), for example:
+
+```
+{"timestamp": 0, "hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "rm /missing"}, "tool_response": {"error": "ENOENT"}}
+{"timestamp": 1000, "hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "npm test"}, "tool_response": {"stdout": "ok"}}
+```
+
+Replay classifies each line with the same `classifyHookEvent` taxonomy used
+live, classifies the idle gap between consecutive timestamps with
+`classifyIdleGap`, and feeds both through the same pure `reduce()` reducer —
+it shares every rule with live sessions, it just reads timestamps from the
+file instead of the system clock. It prints one line per event showing the
+sky transition, followed by the final ASCII frame:
+
+```
+#1 PostToolUse -> storm
+#2 PostToolUse -> cloudy
+#3 Notification -> cloudy
++---------------------+
+|       .----.        |
+|     (________)      |
+|       CLOUDY        |
++---------------------+
+```
+
+The underlying pieces are also available programmatically:
+
+```js
+const { replayTranscriptFile, replayEntries, parseTranscript } = require('./index.js');
+
+// Reads a file from disk, parses each line, and replays the whole timeline.
+const frames = replayTranscriptFile('path/to/transcript.jsonl');
+frames[frames.length - 1].state.sky; // the final sky state
+
+// parseTranscript/replayEntries are exposed separately for testing or for
+// replaying transcript data already held in memory.
+const entries = parseTranscript(jsonlText);
+const sameFrames = replayEntries(entries);
+```
+
+Malformed or blank lines are skipped rather than aborting the replay, the
+same tolerance the live hook entry point (`bin/hook.js`) applies to bad
+input.
+
 ## Status
 
 Built autonomously, one milestone at a time, and gated on passing tests —
