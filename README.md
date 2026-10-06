@@ -9,8 +9,9 @@ The **event taxonomy** maps raw session hook events to a small set of
 weather-forcing inputs (`storm`, `clear`, `fog`, `calm`). The **weather state
 machine** is a pure reducer that advances a sky state (`clear`, `cloudy`,
 `storm`, `fog`) one forcing at a time, so the same sequence of forcings
-always produces the same forecast. A later milestone renders this state into
-an actual status-line pane.
+always produces the same forecast. The **ASCII renderer** draws that state
+to a fixed-width, fixed-height text frame for a status-line pane — every
+sky state renders to the same dimensions, so the pane never reflows.
 
 ## Install
 
@@ -81,6 +82,24 @@ The state machine's rules:
 - A **calm** forcing (anything weather-neutral) is the only thing that decays
   a state on its own: after enough consecutive calm ticks, `storm` steps
   down to `cloudy`, and `cloudy`/`fog` settle back to `clear`.
+
+Render any state to a fixed-width ASCII frame for a status-line pane:
+
+```js
+const { render, SKY } = require('./index.js');
+
+console.log(render({ sky: SKY.STORM, intensity: 2, ticksInState: 0 }));
+// +---------------------+
+// |     (________)      |
+// |         / /         |
+// |      STORM x2       |
+// +---------------------+
+```
+
+`render()` is pure and deterministic: every sky state produces the same
+fixed `FRAME_WIDTH` x `FRAME_HEIGHT` frame, so the status-line pane never
+reflows as the forecast changes. Storm frames scale their lightning line
+with `intensity`.
 
 ## Status
 
