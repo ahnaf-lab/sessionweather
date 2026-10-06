@@ -1,0 +1,13 @@
+{
+  "name": "sessionweather",
+  "version": "0.1.0",
+  "description": "A tiny deterministic weather system driven by Claude Code session hook events.",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
